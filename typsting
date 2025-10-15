@@ -1,7 +1,9 @@
 #!/bin/bash
+set -eu
 
 GREEN='\e[32m'
 RED='\e[31m'
+GREY='\033[38;5;250m'
 RESET='\e[0m'
 
 WIDTH=10
@@ -9,17 +11,26 @@ HEIGHT=1.5
 
 IFS='\n'
 FILEPATH="formulas.typ"
+TEMP_FILE=$(mktemp)
+
+exit_() {
+	rm "$TEMP_FILE"
+}
 
 print_image() {
-	local temp_file=$(mktemp)
-	echo "#set page(width: ${WIDTH}cm, height: ${HEIGHT}cm)" > $temp_file
-	echo "$line" >> $temp_file
-	typst compile $temp_file -f png - | chafa --align center
+	echo "#set page(width: ${WIDTH}cm, height: ${HEIGHT}cm)" > "$TEMP_FILE"
+	echo "$line" >> "$TEMP_FILE"
+	typst compile "$TEMP_FILE" -f png - | chafa --align center
 }
 
 get_typed_formula() {
-	read -p "> " formula
-	echo -e "\b \b"
+	if [[ $is_correct == 1 ]]; then
+		echo -e "${GREEN}correct${RESET}"
+		formula=""
+	elif [[ $is_correct == 0 ]]; then
+		echo -e "${RED}incorrect${RESET}"
+	fi
+	read -e -p "> " -i "$formula" formula
 }
 
 trim_formula() {
@@ -30,19 +41,19 @@ trim_formula() {
 }
 
 check_typed_formula() {
-	if [[ $formula == $trimmed_line ]]; then
-		echo "${GREEN}correct${RESET}"
+	trim_formula
+	if [[ "$formula" == "$trimmed_line" ]]; then
+		is_correct=1
 	else
-		echo -e "${RED}incorrect${RESET}"
+		is_correct=0
 		fails=$((fails-1))
-		sleep 0.5
 	fi
 }
 
 print_header() {
 	clear
 	echo
-	echo "Fails: $fails"
+	echo -e " ${GREY}Fails: $fails$RESET"
 	echo
 }
 
@@ -53,18 +64,40 @@ check_filepath() {
 	fi
 }
 
+suggest_next_task() {
+	echo -e "${GREEN}correct${RESET}"
+	read -p "next task? [y/n]: " choice
+}
+
 main() {
 	check_filepath
 
-	for line in $(cat $FILEPATH); do
+	result=""
+	formula=""
+	is_correct=-1
+	while true; do
+		line=$(shuf -n 1 "$FILEPATH")
 		fails=5
 		while [[ $fails != 0 ]]; do
 			print_header
 			print_image
 			get_typed_formula
 			check_typed_formula
+
+			if [[ $is_correct == 1 ]]; then
+				suggest_next_task
+				if [[ $choice == "y" ]]; then
+					break;
+				else
+					exit_
+					exit
+				fi
+			fi
 		done
 	done
+
+	echo "tasks are ended"
+	exit_
 }
 
 main
