@@ -1,0 +1,70 @@
+#!/bin/bash
+
+GREEN='\e[32m'
+RED='\e[31m'
+RESET='\e[0m'
+
+WIDTH=10
+HEIGHT=1.5
+
+IFS='\n'
+FILEPATH="formulas.typ"
+
+print_image() {
+	local temp_file=$(mktemp)
+	echo "#set page(width: ${WIDTH}cm, height: ${HEIGHT}cm)" > $temp_file
+	echo "$line" >> $temp_file
+	typst compile $temp_file -f png - | chafa --align center
+}
+
+get_typed_formula() {
+	read -p "> " formula
+	echo -e "\b \b"
+}
+
+trim_formula() {
+	trimmed_line=${line#$}
+	trimmed_line=${trimmed_line%$}
+	trimmed_line=${trimmed_line# }
+	trimmed_line=${trimmed_line% }
+}
+
+check_typed_formula() {
+	if [[ $formula == $trimmed_line ]]; then
+		echo "${GREEN}correct${RESET}"
+	else
+		echo -e "${RED}incorrect${RESET}"
+		fails=$((fails-1))
+		sleep 0.5
+	fi
+}
+
+print_header() {
+	clear
+	echo
+	echo "Fails: $fails"
+	echo
+}
+
+check_filepath() {
+	if [[ ! -e $FILEPATH ]]; then
+		echo "filepath doesn't exist"
+		exit 1
+	fi
+}
+
+main() {
+	check_filepath
+
+	for line in $(cat $FILEPATH); do
+		fails=5
+		while [[ $fails != 0 ]]; do
+			print_header
+			print_image
+			get_typed_formula
+			check_typed_formula
+		done
+	done
+}
+
+main
