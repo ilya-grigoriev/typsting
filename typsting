@@ -26,7 +26,6 @@ print_image() {
 get_typed_formula() {
 	if [[ $is_correct == 1 ]]; then
 		echo -e "${GREEN}correct${RESET}"
-		formula=""
 	elif [[ $is_correct == 0 ]]; then
 		echo -e "${RED}incorrect${RESET}"
 	fi
@@ -85,6 +84,8 @@ main() {
 			check_typed_formula
 
 			if [[ $is_correct == 1 ]]; then
+				is_correct=-1
+				formula=""
 				suggest_next_task
 				if [[ $choice == "y" ]]; then
 					break;
