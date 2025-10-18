@@ -13,14 +13,22 @@ IFS='\n'
 FILEPATH="formulas.typ"
 TEMP_FILE=$(mktemp)
 
-exit_() {
+clear_() {
 	rm "$TEMP_FILE"
+	rm "${TEMP_FILE}.png"
+	is_correct=-1
+	formula=""
+	image=""
 }
 
 print_image() {
 	echo "#set page(width: ${WIDTH}cm, height: ${HEIGHT}cm)" > "$TEMP_FILE"
 	echo "$line" >> "$TEMP_FILE"
-	typst compile "$TEMP_FILE" -f png - | chafa --align center
+
+	if [[ ! -e "${TEMP_FILE}.png" ]]; then
+		typst compile "$TEMP_FILE" -f png "${TEMP_FILE}.png"
+	fi
+	chafa --align center "${TEMP_FILE}.png"
 }
 
 get_typed_formula() {
@@ -64,8 +72,7 @@ check_filepath() {
 }
 
 suggest_next_task() {
-	echo -e "${GREEN}correct${RESET}"
-	read -p "next task? [y/n]: " choice
+	read -p "next task? [Y/n]: " choice < /dev/tty
 }
 
 main() {
@@ -84,21 +91,21 @@ main() {
 			check_typed_formula
 
 			if [[ $is_correct == 1 ]]; then
-				is_correct=-1
-				formula=""
 				suggest_next_task
-				if [[ $choice == "y" ]]; then
+				if [[ $choice == "y" || $choice == "Y" || $choice == "" ]]; then
+					clear_;
 					break;
 				else
-					exit_
+					clear_
 					exit
 				fi
 			fi
 		done
+
 	done
 
 	echo "tasks are ended"
-	exit_
+	clear_
 }
 
 main
