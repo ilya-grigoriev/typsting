@@ -14,11 +14,19 @@ FILEPATH="formulas.typ"
 TEMP_FILE=$(mktemp)
 
 clear_() {
-	rm "$TEMP_FILE"
-	rm "${TEMP_FILE}.png"
+	if [[ -e "$TEMP_FILE" ]]; then
+		rm "$TEMP_FILE"
+		rm "${TEMP_FILE}.png"
+	fi
 	is_correct=-1
 	formula=""
 	image=""
+}
+
+clear_and_exit() {
+	clear_
+	clear
+	exit
 }
 
 print_image() {
@@ -92,20 +100,24 @@ main() {
 
 			if [[ $is_correct == 1 ]]; then
 				suggest_next_task
-				if [[ $choice == "y" || $choice == "Y" || $choice == "" ]]; then
+				if [[ "$choice" == "y" || "$choice" == "Y" || "$choice" == "" ]]; then
 					clear_;
 					break;
 				else
-					clear_
-					exit
+					clear_and_exit
 				fi
 			fi
 		done
 
 	done
 
-	echo "tasks are ended"
-	clear_
+	clear_and_exit
 }
+
+trap clear_and_exit SIGINT
+trap clear_and_exit SIGTERM
+trap clear_and_exit SIGKILL
+trap clear_and_exit SIGQUIT
+trap clear_and_exit EXIT
 
 main
