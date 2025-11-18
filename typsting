@@ -57,7 +57,7 @@ trim_formula() {
 
 check_typed_formula() {
 	trim_formula
-	if [[ "$formula" == "$trimmed_line" ]]; then
+	if [[ "$(echo $formula | tr -s ' ')" == "$trimmed_line" ]]; then
 		is_correct=1
 	else
 		is_correct=0
