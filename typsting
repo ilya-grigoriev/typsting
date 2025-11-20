@@ -8,7 +8,7 @@ RESET='\e[0m'
 
 WIDTH=10
 HEIGHT=1.5
-FAILS=1
+FAILS=2
 
 IFS='\n'
 FILEPATH="formulas.typ"
@@ -42,9 +42,9 @@ print_image() {
 
 get_typed_formula() {
 	if [[ $is_correct == 1 ]]; then
-		echo -e "${GREEN}correct${RESET}"
+		echo -e "${GREEN}Correct${RESET}"
 	elif [[ $is_correct == 0 ]]; then
-		echo -e "${RED}incorrect${RESET}"
+		echo -e "${RED}Incorrect${RESET}"
 	fi
 	read -e -p "> " -i "$formula" formula
 }
@@ -74,9 +74,21 @@ print_header() {
 
 }
 
-print_correct_answer() {
+print_error_message() {
+	echo -e "${RED}Incorrect$RESET"
+}
+
+print_correct_message() {
+	echo -e "${GREEN}Correct$RESET"
 	echo
-	echo -e "${GREEN}Correct answer: $correct_answer$RESET"
+}
+
+print_correct_answer() {
+	answer=${correct_answer#$}
+	answer=${answer%$}
+	answer=${answer# }
+	echo
+	echo -e "${GREEN}Correct answer: $answer$RESET"
 	echo
 }
 
@@ -111,7 +123,12 @@ main() {
 
 			if [[ $is_correct == 1 || $fails == 0 ]]; then
 				if [[ $fails == 0 ]]; then
+					if [[ $FAILS == 1 ]]; then
+						print_error_message
+					fi
 					print_correct_answer
+				else
+					print_correct_message
 				fi
 
 				suggest_next_task
