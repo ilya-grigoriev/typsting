@@ -8,6 +8,7 @@ RESET='\e[0m'
 
 WIDTH=10
 HEIGHT=1.5
+FAILS=1
 
 IFS='\n'
 FILEPATH="formulas.typ"
@@ -31,12 +32,12 @@ clear_and_exit() {
 
 print_image() {
 	echo "#set page(width: ${WIDTH}cm, height: ${HEIGHT}cm)" > "$TEMP_FILE"
-	echo "$line" >> "$TEMP_FILE"
+	echo "$correct_answer" >> "$TEMP_FILE"
 
 	if [[ ! -e "${TEMP_FILE}.png" ]]; then
 		typst compile "$TEMP_FILE" -f png "${TEMP_FILE}.png"
 	fi
-	chafa --align center "${TEMP_FILE}.png"
+	chafa --align center "${TEMP_FILE}.png" </dev/null
 }
 
 get_typed_formula() {
@@ -49,15 +50,15 @@ get_typed_formula() {
 }
 
 trim_formula() {
-	trimmed_line=${line#$}
-	trimmed_line=${trimmed_line%$}
-	trimmed_line=${trimmed_line# }
-	trimmed_line=${trimmed_line% }
+	trimmed_correct_answer=${correct_answer#$}
+	trimmed_correct_answer=${trimmed_correct_answer%$}
+	trimmed_correct_answer=${trimmed_correct_answer# }
+	trimmed_correct_answer=${trimmed_correct_answer% }
 }
 
 check_typed_formula() {
 	trim_formula
-	if [[ "$(echo $formula | tr -s ' ')" == "$trimmed_line" ]]; then
+	if [[ "$formula" == "$trimmed_correct_answer" ]]; then
 		is_correct=1
 	else
 		is_correct=0
@@ -70,6 +71,13 @@ print_header() {
 	echo
 	echo -e " ${GREY}Fails: $fails$RESET"
 	echo
+
+}
+
+print_correct_answer() {
+	echo
+	echo -e "${GREEN}Correct answer: $correct_answer$RESET"
+	echo
 }
 
 check_filepath() {
@@ -80,7 +88,10 @@ check_filepath() {
 }
 
 suggest_next_task() {
-	read -p "next task? [Y/n]: " choice < /dev/tty
+	read -p "next task? [Y/n]: " choice
+	if [[ $choice == "" ]]; then
+		choice="Y"
+	fi
 }
 
 main() {
@@ -90,17 +101,21 @@ main() {
 	formula=""
 	is_correct=-1
 	while true; do
-		line=$(shuf -n 1 "$FILEPATH")
-		fails=5
+		correct_answer=$(shuf -n 1 "$FILEPATH")
+		fails=$FAILS
 		while [[ $fails != 0 ]]; do
 			print_header
 			print_image
 			get_typed_formula
 			check_typed_formula
 
-			if [[ $is_correct == 1 ]]; then
+			if [[ $is_correct == 1 || $fails == 0 ]]; then
+				if [[ $fails == 0 ]]; then
+					print_correct_answer
+				fi
+
 				suggest_next_task
-				if [[ "$choice" == "y" || "$choice" == "Y" || "$choice" == "" ]]; then
+				if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
 					clear_;
 					break;
 				else
@@ -108,7 +123,6 @@ main() {
 				fi
 			fi
 		done
-
 	done
 
 	clear_and_exit
