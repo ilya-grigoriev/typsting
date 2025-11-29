@@ -10,7 +10,6 @@ WIDTH=10
 HEIGHT=1.5
 FAILS=2
 
-IFS='\n'
 FILEPATH="formulas.typ"
 TEMP_FILE=$(mktemp)
 
@@ -21,13 +20,21 @@ clear_() {
 	fi
 	is_correct=-1
 	formula=""
-	image=""
 }
 
 clear_and_exit() {
 	clear_
 	clear
 	exit
+}
+
+save_ifs() {
+	original_IFS=$IFS
+	IFS=$'\n'
+}
+
+recover_ifs() {
+	IFS="$original_IFS"
 }
 
 print_image() {
@@ -46,19 +53,32 @@ get_typed_formula() {
 	elif [[ $is_correct == 0 ]]; then
 		echo -e "${RED}Incorrect${RESET}"
 	fi
-	read -e -p "> " -i "$formula" formula
+
+	save_ifs
+	read -r -e -p "> " -i "$input_formula" input_formula
+	recover_ifs
+}
+
+trim_whitespaces_formula() {
+	set -f
+	set -- "$@"
+	printf "%s" "$*"
+	set +f
 }
 
 trim_formula() {
-	trimmed_correct_answer=${correct_answer#$}
-	trimmed_correct_answer=${trimmed_correct_answer%$}
-	trimmed_correct_answer=${trimmed_correct_answer# }
-	trimmed_correct_answer=${trimmed_correct_answer% }
+	local formula
+	formula=$(trim_whitespaces_formula $1)
+	formula="${formula#$}"
+	formula="${formula%$}"
+	formula=$(trim_whitespaces_formula $formula)
+	printf "%s" "$formula"
 }
 
 check_typed_formula() {
-	trim_formula
-	if [[ "$formula" == "$trimmed_correct_answer" ]]; then
+	correct_answer=$(trim_formula "$correct_answer")
+	input_formula=$(trim_formula "$input_formula")
+	if [[ "$input_formula" == "$correct_answer" ]]; then
 		is_correct=1
 	else
 		is_correct=0
@@ -67,8 +87,8 @@ check_typed_formula() {
 }
 
 print_header() {
-	clear
 	echo
+	clear
 	echo -e " ${GREY}Fails: $fails$RESET"
 	echo
 
@@ -84,11 +104,9 @@ print_correct_message() {
 }
 
 print_correct_answer() {
-	answer=${correct_answer#$}
-	answer=${answer%$}
-	answer=${answer# }
+	correct_answer=$(trim_formula "$correct_answer")
 	echo
-	echo -e "${GREEN}Correct answer: $answer$RESET"
+	echo -e "${GREEN}Correct answer: $correct_answer$RESET"
 	echo
 }
 
@@ -100,7 +118,10 @@ check_filepath() {
 }
 
 suggest_next_task() {
-	read -p "next task? [Y/n]: " choice
+	save_ifs
+	read -r -p "next task? [Y/n]: " choice
+	recover_ifs
+
 	if [[ $choice == "" ]]; then
 		choice="Y"
 	fi
@@ -109,8 +130,7 @@ suggest_next_task() {
 main() {
 	check_filepath
 
-	result=""
-	formula=""
+	input_formula=""
 	is_correct=-1
 	while true; do
 		correct_answer=$(shuf -n 1 "$FILEPATH")
@@ -145,10 +165,13 @@ main() {
 	clear_and_exit
 }
 
-trap clear_and_exit SIGINT
-trap clear_and_exit SIGTERM
-trap clear_and_exit SIGKILL
-trap clear_and_exit SIGQUIT
-trap clear_and_exit EXIT
+run_trap() {
+	trap clear_and_exit SIGINT
+	trap clear_and_exit SIGTERM
+	trap clear_and_exit SIGQUIT
+	trap clear_and_exit EXIT
+}
+
+run_trap
 
 main
